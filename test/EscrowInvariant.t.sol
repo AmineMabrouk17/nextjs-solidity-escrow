@@ -53,6 +53,14 @@ contract EscrowHandler is Test {
         escrow.refund();
     }
 
+    function resolveAfterDeadline(bool toSeller) external {
+        if (escrow.currentState() != TrustlessEscrow.State.AwaitingDelivery) return;
+        if (block.timestamp <= escrow.deadline()) return;
+        address payable recipient = toSeller ? seller : buyer;
+        vm.prank(arbiter);
+        escrow.resolveAfterDeadline(recipient);
+    }
+
     function advanceTime(uint256 secondsToAdvance) external {
         vm.warp(block.timestamp + secondsToAdvance);
     }

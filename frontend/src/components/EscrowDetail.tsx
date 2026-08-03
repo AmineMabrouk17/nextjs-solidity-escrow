@@ -24,6 +24,8 @@ const ACTION_LABELS: Record<EscrowAction, string> = {
   refund: 'Refund (deadline passed)',
   resolveToBuyer: 'Resolve → Buyer',
   resolveToSeller: 'Resolve → Seller',
+  settleToBuyer: 'Settle → Buyer (deadline passed)',
+  settleToSeller: 'Settle → Seller (deadline passed)',
 };
 
 export function EscrowDetail({ address: initialAddress }: { address?: string }) {
@@ -110,6 +112,12 @@ export function EscrowDetail({ address: initialAddress }: { address?: string }) 
           break;
         case 'resolveToSeller':
           await writeContractAsync({ address, abi: escrowAbi, functionName: 'resolveDispute', args: [seller!] });
+          break;
+        case 'settleToBuyer':
+          await writeContractAsync({ address, abi: escrowAbi, functionName: 'resolveAfterDeadline', args: [buyer!] });
+          break;
+        case 'settleToSeller':
+          await writeContractAsync({ address, abi: escrowAbi, functionName: 'resolveAfterDeadline', args: [seller!] });
           break;
       }
     } catch (err) {

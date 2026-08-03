@@ -12,6 +12,20 @@ Deployed on Vercel: **https://trustless-escrow-demo.vercel.app**
 
 The app runs against Sepolia. `NEXT_PUBLIC_ESCROW_ADDRESS` is unset by default, so open **Create** to deploy and fund a fresh escrow, then **Escrow Detail** to drive it through the lifecycle. Once a live Sepolia escrow is deployed (see below), set that address as the env var to pin a demo target on the home screen.
 
+Demo buyer wallet (funded via faucet, used to deploy and fund the live demo escrow):
+`0x5496079dbd9c0A4B28334a187d3e2ba1046753a6`
+
+### Viewing Sepolia in a wallet
+
+Testnets are hidden by default in most wallets. To see and select Sepolia in **Brave Wallet**:
+
+1. Open `brave://settings/wallet/networks` (or Brave Settings → Web3 → Wallet Networks).
+2. Toggle **Show test networks** (or "Show testnets") **ON**.
+3. Open the Brave Wallet panel, search the networks list for **Sepolia**, and select it.
+4. The funded balance (e.g. `0x5496079dbd9c0A4B28334a187d3e2ba1046753a6` → ~0.088 ETH) appears immediately.
+
+In **MetaMask**: Settings → Advanced → toggle **Show test networks** on. If Sepolia is not listed, add it manually: Network name `Sepolia`, RPC `https://ethereum-sepolia.publicnode.com`, Chain ID `11155111`, Currency `ETH`. Never sign app transactions while the wallet is on Ethereum mainnet — they target a Sepolia contract.
+
 ---
 
 ## State machine
@@ -22,6 +36,7 @@ The app runs against Sepolia. `NEXT_PUBLIC_ESCROW_ADDRESS` is unset by default, 
  AwaitingDelivery ── confirmDelivery() [Buyer] ──────▶ Complete        (seller paid)
  AwaitingDelivery ── raiseDispute() [Buyer|Seller] ──▶ Disputed
  AwaitingDelivery ── refund() [Buyer, after deadline] ▶ Refunded       (buyer paid)
+ AwaitingDelivery ── resolveAfterDeadline() [Arbiter, after deadline] ▶ Resolved
  Disputed        ── resolveDispute() [Arbiter] ──────▶ Resolved       (all-or-nothing)
 ```
 
@@ -29,8 +44,9 @@ The app runs against Sepolia. `NEXT_PUBLIC_ESCROW_ADDRESS` is unset by default, 
 - `deposit()` must send the exact escrow amount or it reverts with `IncorrectAmount`.
 - `refund()` is available only to the buyer, only while delivery is awaited, and strictly after the deadline. It is terminal.
 - `resolveDispute()` is all-or-nothing to the buyer or the seller; the arbiter is a single immutable address.
+- `resolveAfterDeadline()` lets the arbiter settle an `AwaitingDelivery` escrow strictly after the deadline, so funds can never be locked forever if the buyer goes silent.
 
-See the ADRs under `docs/adr/` for the two hard-to-reverse decisions: the immutable single arbiter, and the absolute deadline + buyer refund.
+See the ADRs under `docs/adr/` for the hard-to-reverse decisions: the immutable single arbiter, the absolute deadline + buyer refund, and the post-deadline arbiter settlement.
 
 ---
 
