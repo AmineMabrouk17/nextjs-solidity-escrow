@@ -15,6 +15,17 @@ The app runs against Sepolia. `NEXT_PUBLIC_ESCROW_ADDRESS` is unset by default, 
 Demo buyer wallet (funded via faucet, used to deploy and fund the live demo escrow):
 `0x5496079dbd9c0A4B28334a187d3e2ba1046753a6`
 
+### Viewing Sepolia in a wallet
+
+Testnets are hidden by default in most wallets. To see and select Sepolia in **Brave Wallet**:
+
+1. Open `brave://settings/wallet/networks` (or Brave Settings → Web3 → Wallet Networks).
+2. Toggle **Show test networks** (or "Show testnets") **ON**.
+3. Open the Brave Wallet panel, search the networks list for **Sepolia**, and select it.
+4. The funded balance (e.g. `0x5496079dbd9c0A4B28334a187d3e2ba1046753a6` → ~0.088 ETH) appears immediately.
+
+In **MetaMask**: Settings → Advanced → toggle **Show test networks** on. If Sepolia is not listed, add it manually: Network name `Sepolia`, RPC `https://ethereum-sepolia.publicnode.com`, Chain ID `11155111`, Currency `ETH`. Never sign app transactions while the wallet is on Ethereum mainnet — they target a Sepolia contract.
+
 ---
 
 ## State machine
