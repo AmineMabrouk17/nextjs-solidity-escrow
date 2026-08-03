@@ -1,0 +1,12 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+
+[profile.default.fuzz]
+runs = 256
+
+[profile.default.invariant]
+runs = 256
