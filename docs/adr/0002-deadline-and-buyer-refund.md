@@ -1,0 +1,5 @@
+# Absolute deadline + buyer refund
+
+Each escrow fixes an absolute unix `deadline` at creation (immutable, cannot be extended). While delivery is still awaited and once that deadline has strictly passed, the buyer can call `refund()` to recover the full deposit, moving the escrow to a terminal `Refunded` state.
+
+Alternatives rejected: a relative deadline (counted from deposit) lets a slow buyer extend the window forever, so the seller never gets a firm date; an arbiter-extendable deadline reintroduces trust in the arbiter for the non-dispute path; and no refund at all makes a stalled escrow lock buyer funds indefinitely, the worst case for a trust-minimized protocol. An absolute deadline is fully deterministic and verifiable off-chain, which keeps the "minimize trust" story intact. Trade-off accepted: the buyer can also refund after depositing late (deposit is allowed past the deadline), since they funded a window that has already closed — the seller's protection is simply to fund the escrow promptly. Refund is strictly after the deadline (`block.timestamp > deadline`); exactly at the deadline it is still blocked.
