@@ -6,7 +6,9 @@ export type EscrowAction =
   | 'raiseDispute'
   | 'refund'
   | 'resolveToBuyer'
-  | 'resolveToSeller';
+  | 'resolveToSeller'
+  | 'settleToBuyer'
+  | 'settleToSeller';
 
 export const State = {
   AwaitingPayment: 0,
@@ -77,6 +79,8 @@ export function getAvailableActions(
         if (isAfterDeadline(nowSeconds, deadlineSeconds)) actions.push('refund');
       } else if (role === 'seller') {
         actions.push('raiseDispute');
+      } else if (role === 'arbiter' && isAfterDeadline(nowSeconds, deadlineSeconds)) {
+        actions.push('settleToBuyer', 'settleToSeller');
       }
       return actions;
     }

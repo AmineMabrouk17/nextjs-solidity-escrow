@@ -91,6 +91,14 @@ describe('getAvailableActions', () => {
     expect(getAvailableActions(AwaitingDelivery, 'none', 0, deadlineFuture)).toEqual([]);
   });
 
+  it('lets the arbiter settle to buyer or seller once the deadline has passed', () => {
+    expect(getAvailableActions(AwaitingDelivery, 'arbiter', nowAfterDeadline, deadlineFuture)).toEqual<EscrowAction[]>([
+      'settleToBuyer',
+      'settleToSeller',
+    ]);
+    expect(getAvailableActions(AwaitingDelivery, 'buyer', nowAfterDeadline, deadlineFuture)).not.toContain('settleToBuyer');
+  });
+
   it('lets only the arbiter resolve a dispute, all-or-nothing', () => {
     expect(getAvailableActions(Disputed, 'arbiter', 0, deadlineFuture)).toEqual<EscrowAction[]>([
       'resolveToBuyer',
