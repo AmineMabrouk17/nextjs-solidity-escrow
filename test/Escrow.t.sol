@@ -301,6 +301,104 @@ contract EscrowTest is Test {
         escrow.resolveDispute(seller);
     }
 
+    // --- Post-deadline settlement ---
+
+    function test_ResolveAfterDeadline_ToSeller() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        uint256 initialSellerBalance = seller.balance;
+
+        vm.expectEmit(true, true, true, true, address(escrow));
+        emit TrustlessEscrow.EscrowSettled(seller, escrowAmount);
+        vm.prank(arbiter);
+        escrow.resolveAfterDeadline(seller);
+
+        assertEq(uint(escrow.currentState()), uint(TrustlessEscrow.State.Resolved));
+        assertEq(seller.balance, initialSellerBalance + escrowAmount);
+        assertEq(address(escrow).balance, 0);
+    }
+
+    function test_ResolveAfterDeadline_ToBuyer() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        uint256 initialBuyerBalance = buyer.balance;
+
+        vm.expectEmit(true, true, true, true, address(escrow));
+        emit TrustlessEscrow.EscrowSettled(buyer, escrowAmount);
+        vm.prank(arbiter);
+        escrow.resolveAfterDeadline(buyer);
+
+        assertEq(uint(escrow.currentState()), uint(TrustlessEscrow.State.Resolved));
+        assertEq(buyer.balance, initialBuyerBalance + escrowAmount);
+        assertEq(address(escrow).balance, 0);
+    }
+
+    function test_ResolveAfterDeadline_NotArbiterReverts() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        vm.prank(seller);
+        vm.expectRevert(TrustlessEscrow.Unauthorized.selector);
+        escrow.resolveAfterDeadline(seller);
+    }
+
+    function test_ResolveAfterDeadline_BeforeDeadlineReverts() public {
+        _deposit();
+        vm.prank(arbiter);
+        vm.expectRevert(abi.encodeWithSelector(TrustlessEscrow.NotYetResolvable.selector, block.timestamp + deadline));
+        escrow.resolveAfterDeadline(seller);
+    }
+
+    function test_ResolveAfterDeadline_ExactlyAtDeadlineReverts() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline);
+        vm.prank(arbiter);
+        vm.expectRevert(abi.encodeWithSelector(TrustlessEscrow.NotYetResolvable.selector, block.timestamp));
+        escrow.resolveAfterDeadline(seller);
+    }
+
+    function test_ResolveAfterDeadline_NonPartyRecipientReverts() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        vm.prank(arbiter);
+        vm.expectRevert(TrustlessEscrow.Unauthorized.selector);
+        escrow.resolveAfterDeadline(payable(stranger));
+    }
+
+    function test_ResolveAfterDeadline_BeforeDepositReverts() public {
+        vm.warp(block.timestamp + deadline + 1);
+        vm.prank(arbiter);
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustlessEscrow.InvalidState.selector, TrustlessEscrow.State.AwaitingPayment, TrustlessEscrow.State.AwaitingDelivery)
+        );
+        escrow.resolveAfterDeadline(seller);
+    }
+
+    function test_ResolveAfterDeadline_AfterRefundReverts() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        vm.prank(buyer);
+        escrow.refund();
+
+        vm.prank(arbiter);
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustlessEscrow.InvalidState.selector, TrustlessEscrow.State.Refunded, TrustlessEscrow.State.AwaitingDelivery)
+        );
+        escrow.resolveAfterDeadline(seller);
+    }
+
+    function test_ResolveAfterDeadline_AfterConfirmReverts() public {
+        _deposit();
+        vm.warp(block.timestamp + deadline + 1);
+        vm.prank(buyer);
+        escrow.confirmDelivery();
+
+        vm.prank(arbiter);
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustlessEscrow.InvalidState.selector, TrustlessEscrow.State.Complete, TrustlessEscrow.State.AwaitingDelivery)
+        );
+        escrow.resolveAfterDeadline(seller);
+    }
+
     function test_FullSuccessfulFlow() public {
         _deposit();
         vm.prank(buyer);

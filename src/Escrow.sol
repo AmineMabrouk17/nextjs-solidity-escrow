@@ -5,7 +5,8 @@ pragma solidity ^0.8.24;
  * @title TrustlessEscrow
  * @author Amine Mabrouk
  * @notice Trust-minimized state machine escrow contract with an absolute deadline,
- *         a buyer refund path, gas optimizations, and reentrancy protection.
+ *         a buyer refund path, a post-deadline arbiter settlement path, gas
+ *         optimizations, and reentrancy protection.
  */
 contract TrustlessEscrow {
     enum State { AwaitingPayment, AwaitingDelivery, Complete, Disputed, Resolved, Refunded }
@@ -25,6 +26,7 @@ contract TrustlessEscrow {
     event DeliveryConfirmed(address indexed seller, uint256 amount);
     event DisputeOpened(address indexed initiator);
     event DisputeResolved(address indexed recipient, uint256 amount);
+    event EscrowSettled(address indexed recipient, uint256 amount);
     event Refunded(address indexed buyer, uint256 amount);
 
     // Custom Errors (Gas Efficiency)
@@ -35,6 +37,7 @@ contract TrustlessEscrow {
     error InvalidState(State current, State expected);
     error IncorrectAmount(uint256 expected, uint256 received);
     error NotYetRefundable(uint256 deadline);
+    error NotYetResolvable(uint256 deadline);
     error ReentrancyGuard();
     error TransferFailed();
 
@@ -123,6 +126,22 @@ contract TrustlessEscrow {
 
         // 2. Interactions
         emit DisputeResolved(recipient, amount);
+        (bool success, ) = recipient.call{value: amount}("");
+        if (!success) revert TransferFailed();
+    }
+
+    /// @notice Arbiter settles a delivery-stalled escrow strictly after the deadline, releasing the
+    ///         full amount to either the buyer or the seller. Terminal state. Prevents funds from
+    ///         being locked in the contract forever if the buyer goes silent while delivery is awaited.
+    function resolveAfterDeadline(address payable recipient) external onlyArbiter inState(State.AwaitingDelivery) nonReentrant {
+        if (block.timestamp <= deadline) revert NotYetResolvable(deadline);
+        if (recipient != buyer && recipient != seller) revert Unauthorized();
+
+        // 1. Effects
+        currentState = State.Resolved;
+
+        // 2. Interactions
+        emit EscrowSettled(recipient, amount);
         (bool success, ) = recipient.call{value: amount}("");
         if (!success) revert TransferFailed();
     }
